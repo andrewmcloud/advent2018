@@ -2,7 +2,7 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as s]))
 
-(defn parse-input []
+(defn- parse-input []
   (let [int-re-xf (comp
                    (map (partial re-seq #"\d+"))
                    (map (fn [[x y]] [(Integer/parseInt x) (Integer/parseInt y)])))]
@@ -12,19 +12,19 @@
          s/split-lines
          (into [] int-re-xf))))
 
-(defn manhattan
+(defn- manhattan
   [[x y] [a b]]
   (+ (Math/abs ^int (- x a))
      (Math/abs ^int (- y b))))
 
-(defn bounded?
+(defn- bounded?
   [coord-map max-x max-y]
   (let [[x y] (:point coord-map)]
     (if (and (< 0 x max-x) (< 0 y max-y))
       (assoc coord-map :bounded? true)
       (assoc coord-map :bounded? false))))
 
-(defn point->coords
+(defn- point->coords
   [point coords max-x max-y]
   (let [closest (->> (map-indexed (fn [idx coord] {:idx idx :dist (manhattan point coord) :point point}) coords)
                      (sort-by :dist)
@@ -34,13 +34,13 @@
       (bounded? (first closest) max-x max-y)
       nil)))
 
-(defn region
+(defn- region
   [point coords]
   (let [total-dist (reduce + (map #(manhattan point %) coords))]
     (when (< total-dist 10000)
       true)))
 
-(defn unbounded-coords
+(defn- unbounded-coords
   [distance-maps]
   (let [unbounded (filter #(false? (:bounded? %)) distance-maps)]
     (reduce (fn [coll m]
