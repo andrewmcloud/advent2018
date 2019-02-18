@@ -1,31 +1,33 @@
 (ns advent2018.day9
   (:require [clojure.java.io :as io]))
 
+(defn keywordize-int
+  [i]
+  (keyword (str i)))
+
 (defn init
   [new]
-  (let [k (keyword (str new))]
+  (let [k (keywordize-int new)]
     {k {:prev k :next k :val k}}))
 
 (defmulti insert-link
   (fn ([curr m new]
-       (if (= (count (keys m)) 1)
-         :1
-         :many))))
+       (if (= (count (keys m)) 1) :insert-single-case :insert-multi-case))))
 
-(defmethod insert-link :1
+(defmethod insert-link :insert-entry-case
   [{:keys [prev next val]} m new]
-  (let [new (keyword (str new))]
+  (let [new (keywordize-int new)]
     (-> m
         (assoc val {:next new :prev new :val val})
         (assoc new {:next next :prev prev :val new}))))
 
-(defmethod insert-link :many
+(defmethod insert-link :insert-multi-case
   [{:keys [prev next val]} m new]
-  (let [new (keyword (str new))
+  (let [new (keywordize-int new)
         next-node (assoc (next m) :prev new)]
     (-> m
-        (assoc val {:prev prev :next new :val val}) ;;current node
-        (assoc new {:prev val :next next :val new}) ;;new node
+        (assoc val {:prev prev :next new :val val})
+        (assoc new {:prev val :next next :val new})
         (assoc next next-node))))
 
 (defn delete-link
@@ -48,24 +50,24 @@
 
 (defn add-marble
   [{:keys [marble player curr ll players] :as game}]
-  (let [position ((:next (curr ll)) ll)]
+  (let [insert-position ((:next (curr ll)) ll)]
     (-> game
-        (assoc :ll (insert-link position ll marble))
+        (assoc :ll (insert-link insert-position ll marble))
         (update :player #(mod (inc %) players))
         (update :marble inc)
-        (assoc :curr (keyword (str marble))))))
+        (assoc :curr (keywordize-int marble)))))
 
 (defn remove-marble
   [{:keys [marble player curr ll players] :as game}]
   (let [remove-node (nth-link -7 ll (curr ll))
-        node-value (Integer/parseInt (name (:val remove-node)))]
-    (println remove-node)
+        node-value (Integer/parseInt (name (:val remove-node)))
+        score (+ marble node-value)]
     (-> game
         (assoc :ll (delete-link remove-node ll))
         (update :player #(mod (inc %) players))
         (update :marble inc)
         (assoc :curr (:next remove-node))
-        (assoc-in [:scores player] (+ marble node-value)))))
+        (update-in [:scores player] (fnil #(+ % score) 0)))))
 
 (defn parse-input
   []
@@ -73,17 +75,20 @@
                 io/resource
                 slurp
                 (re-seq #"\d+"))]
-    {:players (first in) :points (last in)}))
+    {:players (Integer/parseInt (first in))
+     :points (Integer/parseInt (last in))}))
 
-
-(def game
-  (loop [gm {:marble 1
-             :player 1
-             :curr :0
-             :scores {}
-             :ll (init 0)
-             :players 9}
-         count 0]
-    (if (> count 21)
-      gm
-      (recur (add-marble gm) (inc count)))))
+(defn play-game
+  []
+  (let [{:keys [players points]} (parse-input)]
+    (loop [game {:marble 1
+                 :player 1
+                 :curr :0
+                 :scores {}
+                 :ll (init 0)
+                 :players players}]
+      (if (= (:marble game) points)
+        (apply max (vals (:scores game)))
+        (if (zero? (mod (:marble game) 23))
+          (recur (remove-marble game))
+          (recur (add-marble game)))))))
