@@ -18,8 +18,8 @@
   [{:keys [prev next val]} m new]
   (let [new (keywordize-int new)]
     (-> m
-      (assoc! val {:next new :prev new :val val})
-      (assoc! new {:next next :prev prev :val new}))))
+        (assoc! val {:next new :prev new :val val})
+        (assoc! new {:next next :prev prev :val new}))))
 
 (defmethod insert-link :multi
   [{:keys [prev next val]} m new]
